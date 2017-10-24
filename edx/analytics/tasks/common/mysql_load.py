@@ -344,7 +344,7 @@ class MysqlInsertTask(MysqlInsertTaskMixin, luigi.Task):
             log.debug("========================")
             log.debug(traceback_list)
             log.debug("========================")
-            if "__iter__\n    self._finish()" in traceback_list[5]:
+            if "__iter__\n    self._finish()" in traceback_list[4]:
                 log.debug("Luigi raised RuntimeError while calling _finish on input target.")
             else:
                 connection.rollback()
