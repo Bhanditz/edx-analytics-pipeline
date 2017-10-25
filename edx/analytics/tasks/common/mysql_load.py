@@ -3,7 +3,6 @@ Support for loading data into a Mysql database.
 """
 import json
 import logging
-import sys
 import traceback
 from itertools import chain
 
@@ -171,9 +170,19 @@ class MysqlInsertTask(MysqlInsertTaskMixin, luigi.Task):
 
     def rows(self):
         """Return/yield tuples or lists corresponding to each row to be inserted """
-        with self.input()['insert_source'].open('r') as fobj:
-            for line in fobj:
-                yield line.strip('\n').split('\t')
+        try:
+            with self.input()['insert_source'].open('r') as fobj:
+                for line in fobj:
+                    yield line.strip('\n').split('\t')
+        except RuntimeError:
+            traceback_str = traceback.format_exc()
+            log.debug("========================")
+            log.debug(traceback_str)
+            log.debug("========================")
+            if "self._finish()" in traceback_str:
+                log.debug("Luigi raised RuntimeError while calling _finish on input target.")
+            else:
+                raise
 
     def update_id(self):
         """This update id will be a unique identifier for this insert on this table."""
@@ -338,17 +347,6 @@ class MysqlInsertTask(MysqlInsertTaskMixin, luigi.Task):
 
             # commit only if both operations completed successfully.
             connection.commit()
-        except RuntimeError:
-            exc_type, exc_value, exc_traceback = sys.exc_info()
-            traceback_list =  traceback.format_exception(exc_type, exc_value, exc_traceback)
-            log.debug("========================")
-            log.debug(traceback_list)
-            log.debug("========================")
-            if "__iter__\n    self._finish()" in traceback_list[4]:
-                log.debug("Luigi raised RuntimeError while calling _finish on input target.")
-            else:
-                connection.rollback()
-                raise
         except:
             connection.rollback()
             raise
